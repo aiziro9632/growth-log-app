@@ -64,7 +64,7 @@ def home():
         study_time = int(request.form["study_time"])
 
         cur.execute(
-            f"INSERT INTO logs (category, study_time, created_at) VALUES ({PLACEHOLDER}, {PLACEHOLDER}, CURRENT_TIMESTAMP)",
+            "INSERT INTO logs (category, study_time) VALUES (%s, %s)",
             (category, study_time)
         )
         conn.commit()
@@ -89,9 +89,11 @@ def home():
     return render_template(
     "index.html",
     logs=logs,
+    categories=CATEGORIES,
     labels=labels,
     values=values
 )
+
 
 # --------------------------
 if __name__ == "__main__":
