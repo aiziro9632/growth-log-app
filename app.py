@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect
 import os
 from datetime import datetime, timedelta
+
 CATEGORIES = [
     "ITパスポート",
     "プログラミング",
@@ -9,6 +10,19 @@ CATEGORIES = [
     "数学",
     "その他"
 ]
+
+# --------------------------
+# 時間表示用関数
+# --------------------------
+def format_time(minutes):
+    if minutes is None:
+        minutes = 0
+    hours = minutes // 60
+    mins = minutes % 60
+    if hours > 0:
+        return f"{hours}時間{mins}分"
+    else:
+        return f"{mins}分"
 
 app = Flask(__name__)
 
