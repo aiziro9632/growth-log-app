@@ -1,6 +1,14 @@
 from flask import Flask, render_template, request, redirect
 import os
 from datetime import datetime, timedelta
+CATEGORIES = [
+    "ITパスポート",
+    "プログラミング",
+    "HSK",
+    "GCI",
+    "数学",
+    "その他"
+]
 
 app = Flask(__name__)
 
