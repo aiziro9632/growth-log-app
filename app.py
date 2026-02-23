@@ -67,6 +67,38 @@ def home():
     conn = get_conn()
     cur = conn.cursor()
 
+    now = datetime.now()
+
+    # ===== 今日（6時基準）=====
+    if now.hour < 6:
+        today_date = (now - timedelta(days=1)).date()
+    else:
+        today_date = now.date()
+
+    start_of_today = datetime.combine(today_date, datetime.min.time()) + timedelta(hours=6)
+    end_of_today = start_of_today + timedelta(days=1)
+
+    # 今日の合計
+    cur.execute("""
+        SELECT COALESCE(SUM(study_time), 0)
+        FROM logs
+        WHERE created_at >= %s AND created_at < %s
+    """, (start_of_today, end_of_today))
+    today_total = cur.fetchone()[0]
+
+    # ===== 今週（6時基準）=====
+    start_week_date = today_date - timedelta(days=today_date.weekday())
+    start_of_week = datetime.combine(start_week_date, datetime.min.time()) + timedelta(hours=6)
+    end_of_week = start_of_week + timedelta(days=7)
+
+    # 今週の合計
+    cur.execute("""
+        SELECT COALESCE(SUM(study_time), 0)
+        FROM logs
+        WHERE created_at >= %s AND created_at < %s
+    """, (start_of_week, end_of_week))
+    week_total = cur.fetchone()[0]
+
     if request.method == "POST":
         category = request.form["category"]
         study_time = int(request.form["study_time"])
@@ -99,7 +131,9 @@ def home():
     logs=logs,
     categories=CATEGORIES,
     labels=labels,
-    values=values
+    values=values,
+    today_total_str=format_time(today_total),
+    week_total_str=format_time(week_total)
 )
 
 
