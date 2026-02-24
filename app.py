@@ -19,6 +19,8 @@ CATEGORIES = [
     "数学",
     "その他"
 ]
+app = Flask(__name__)
+app.secret_key = "supersecretkey"
 
 # --------------------------
 # DB選択（自動切り替え）
@@ -43,44 +45,46 @@ from werkzeug.security import generate_password_hash, check_password_hash
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
+
+    # ユーザーテーブル
     if DATABASE_URL:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                username TEXT UNIQUE,
+                password TEXT
             )
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS logs (
                 id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
                 category TEXT,
                 study_time INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                user_id INTEGER REFERENCES users(id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
     else:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                username TEXT UNIQUE,
+                password TEXT
             )
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
                 category TEXT,
                 study_time INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                user_id INTEGER
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
     conn.commit()
     conn.close()
+
 
 init_db()
 
@@ -88,14 +92,62 @@ init_db()
 # ログイン必須デコレーター
 # --------------------------
 from functools import wraps
+from flask import session, redirect, url_for
 
 def login_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-    return decorated
+    return decorated_function
+
+def init_db():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # ユーザーテーブル
+    if DATABASE_URL:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                category TEXT,
+                study_time INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                category TEXT,
+                study_time INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
+
+
 
 # --------------------------
 # ホーム
@@ -107,6 +159,9 @@ def format_time(minutes):
         return f"{hours}時間{mins}分"
     else:
         return f"{mins}分"
+
+@app.route("/", methods=["GET", "POST"])
+@login_required
 
 @app.route("/", methods=["GET", "POST"])
 @login_required
